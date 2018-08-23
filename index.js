@@ -1,4 +1,3 @@
-
 class UnusedLoadersPlugin {
   apply(compiler) {
     if (compiler.hooks) {
@@ -18,10 +17,9 @@ class UnusedLoadersPlugin {
     fileDependencies = Array.isArray(fileDependencies) ? fileDependencies : Array.from(fileDependencies)
 
     const fileDependenciesWithoutNM = this.getFileDependenciesWithoutNM(fileDependencies)
-    const realRules = this.getRealRules(rules)
 
     let usedRules = []
-    let unusedRules = [...realRules]
+    let unusedRules = [...rules]
 
     // for...of for break
     for (let filename of fileDependenciesWithoutNM) {
@@ -52,27 +50,11 @@ class UnusedLoadersPlugin {
     compilation.warnings.push(`UNUSED LOADERS: ${unusedLoaders.join(', ')}`)
   }
 
-  getRealRules(rules) {
-    // TODO: why filter resourceQuery is null
-    return rules.filter(r => !r.resourceQuery)
-  }
-
   isCanMatchFile(rule, filename) {
     if (rule.test) {
-      // webpack 1.x
       const regExp = new RegExp(rule.test)
       return regExp.test(filename)
     } else {
-      // TODO: webpack 4 or webpack > 2.x
-      // filter resourceQuery is null
-      // use resource function or test
-      // if (rule.resource && typeof rule.resource === 'function') {
-      //     return rule.resource(filename)
-      // } else if (rule.resource && typeof rule.resource === 'object') {
-      //     return rule.resourceQuery(filename)
-      // } else {
-      //     return rule.resourceQuery ? rule.resourceQuery(filename) : false
-      // }
       return rule.resource && typeof rule.resource === 'function'
         ? rule.resource(filename)
         : false
@@ -83,39 +65,41 @@ class UnusedLoadersPlugin {
     return fileDependencies.filter(f => !f.includes('node_modules'))
   }
 
+  formatUse(use) {
+    // use is array or object
+    // [{ loader: 'xxx' }]
+    if (Array.isArray(use)) {
+      return use.map(item => (typeof item === 'string' ? { loader: item } : item))
+    } else {
+      return [use]
+    }
+  }
+
   getLoadersByRules(rules) {
     if (!rules.length) return []
-
-    // webpack 1.x
     /*
-        loades: [
-            { test: /\.jade$/, loader: 'jade' },
-            { test: /\.css$/, loader: 'style!css' },
-            { test: /\.css$/, loaders: ['style', 'css'] }
-        ]
+      loades: [
+        { test: /\.css$/, loader: 'style' },
+        { test: /\.css$/, loader: 'style!css?optison=here' },
+        { test: /\.css$/, loaders: ['style', 'css-loader'] }
+        { test: /\.css$/, use: 'css-loader' },
+        { test: /\.css$/, use: [{ loader: 'style-loader' }, 'css-loader'] },
+        { test: /\.css$/, use: { loader: 'style-loader' } },
+      ]
     */
+    const loaders = rules
+      .reduce((arr, r) => {
+        const loader = r.loader || r.loaders || r.use // string or array or object
 
-    // webpack > 2.x
-    /*
-        rules: [
-            { test: /\.css$/, loader: 'css-loader' },
-            { test: /\.css$/, loader: 'style!css' },
-            { test: /\.css$/, use: 'css-loader' },
-            { test: /\.css$/, use: [{ loader: 'style-loader' }, 'css-loader'] },
-        ]
-    */
+        return typeof loader === 'string' 
+          ? [...arr, ...this.formatUse(loader.split('!'))]
+          : [...arr, ...this.formatUse(loader)]
+      }, [])
+      .map(l => l.loader)
+      .map(l => l.split('?')[0])
+      .map(l => l.includes('-loader') ? l : l + '-loader')
 
-    // get loader, seperate by `!`
-    // get loaders or use, if it's string, seperate by `!`, if it's array
-    // ge item, string ? seperate by `!` : get `item.loader`
-
-    const loaderName = rules.reduce((pre, cur) => {
-      return cur.loader ? [...pre, cur.loader] : [...pre, ...(cur.loaders || cur.use.map(l => l.loader))]
-    }, [])
-      .map(s => s.split('?')[0])
-      .map(s => s.includes('-loader') ? s : s + '-loader')
-
-    return Array.from(new Set(loaderName))
+    return Array.from(new Set(loaders))
   }
 
 }
