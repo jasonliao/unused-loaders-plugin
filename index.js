@@ -1,25 +1,26 @@
 class UnusedLoadersPlugin {
+  constructor() {
+    this.rules = null
+  }
+
   apply(compiler) {
     if (compiler.hooks) {
       compiler.hooks.done.tap('UnusedLoadersPlugin', this.done.bind(this))
     } else {
       compiler.plugin('done', this.done.bind(this))
     }
+
+    this.rules = compiler.options.module.loaders || compiler.options.module.rules
   }
 
   done(stats) {
     const compilation = stats.compilation
-    const options = compilation.options
 
-    const rules = options.module.loaders || options.module.rules
-
-    let fileDependencies = compilation.fileDependencies // Array or Set
-    fileDependencies = Array.isArray(fileDependencies) ? fileDependencies : Array.from(fileDependencies)
-
+    const fileDependencies = compilation.fileDependencies // Array or Set
     const fileDependenciesWithoutNM = this.getFileDependenciesWithoutNM(fileDependencies)
 
     let usedRules = []
-    let unusedRules = [...rules]
+    let unusedRules = [...this.rules]
 
     // for...of for break
     for (let filename of fileDependenciesWithoutNM) {
@@ -40,34 +41,29 @@ class UnusedLoadersPlugin {
     const unusedRulesLoaders = this.getLoadersByRules(unusedRules)
     const usedRulesLoaders = this.getLoadersByRules(usedRules)
 
-    console.log('unusedRules', unusedRules, 'unusedRulesLoaders', unusedRulesLoaders)
-    console.log('usedRules', usedRules, 'usedRulesLoaders', usedRulesLoaders)
-
     const unusedLoaders = unusedRulesLoaders.filter(l => !usedRulesLoaders.includes(l))
 
-    console.log('unusedLoaders', unusedLoaders)
+    if (unusedRules.length) {
+      compilation.warnings.push(`UNUSED RULES: ${unusedRules.map(r => r.test).join(', ')}`)
+    }
 
-    compilation.warnings.push(`UNUSED LOADERS: ${unusedLoaders.join(', ')}`)
+    if (unusedLoaders.length) {
+      compilation.warnings.push(`UNUSED LOADERS: ${unusedLoaders.join(', ')}`)
+    }
+
   }
 
   isCanMatchFile(rule, filename) {
-    if (rule.test) {
       const regExp = new RegExp(rule.test)
       return regExp.test(filename)
-    } else {
-      return rule.resource && typeof rule.resource === 'function'
-        ? rule.resource(filename)
-        : false
-    }
   }
 
   getFileDependenciesWithoutNM(fileDependencies) {
+    fileDependencies = Array.isArray(fileDependencies) ? fileDependencies : Array.from(fileDependencies)
     return fileDependencies.filter(f => !f.includes('node_modules'))
   }
 
   formatUse(use) {
-    // use is array or object
-    // [{ loader: 'xxx' }]
     if (Array.isArray(use)) {
       return use.map(item => (typeof item === 'string' ? { loader: item } : item))
     } else {
@@ -77,16 +73,7 @@ class UnusedLoadersPlugin {
 
   getLoadersByRules(rules) {
     if (!rules.length) return []
-    /*
-      loades: [
-        { test: /\.css$/, loader: 'style' },
-        { test: /\.css$/, loader: 'style!css?optison=here' },
-        { test: /\.css$/, loaders: ['style', 'css-loader'] }
-        { test: /\.css$/, use: 'css-loader' },
-        { test: /\.css$/, use: [{ loader: 'style-loader' }, 'css-loader'] },
-        { test: /\.css$/, use: { loader: 'style-loader' } },
-      ]
-    */
+  
     const loaders = rules
       .reduce((arr, r) => {
         const loader = r.loader || r.loaders || r.use // string or array or object
