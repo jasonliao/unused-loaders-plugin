@@ -1,6 +1,6 @@
 {
   "name": "unused-loaders-plugin",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A webpack plugin to find unused rules/loaders",
   "main": "index.js",
   "repository": "https://gitlab.com/jasonliao94/unused-loaders-plugin.git",
