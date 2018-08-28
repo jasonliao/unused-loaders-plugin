@@ -1,3 +1,5 @@
+const chalk = require('chalk')
+
 class UnusedLoadersPlugin {
   constructor() {
     this.rules = null
@@ -42,20 +44,17 @@ class UnusedLoadersPlugin {
     const usedRulesLoaders = this.getLoadersByRules(usedRules)
 
     const unusedLoaders = unusedRulesLoaders.filter(l => !usedRulesLoaders.includes(l))
-
-    if (unusedRules.length) {
-      compilation.warnings.push(`UNUSED RULES: ${unusedRules.map(r => r.test).join(', ')}`)
-    }
-
-    if (unusedLoaders.length) {
-      compilation.warnings.push(`UNUSED LOADERS: ${unusedLoaders.join(', ')}`)
-    }
-
+    
+    this.display(unusedRules, unusedLoaders)
   }
 
   isCanMatchFile(rule, filename) {
+    if (rule.test) {
       const regExp = new RegExp(rule.test)
       return regExp.test(filename)
+    } else {
+      throw new Warning('original rules seem to be mutated, try to put UnusedLoadersPlugin before all plugins')
+    }
   }
 
   getFileDependenciesWithoutNM(fileDependencies) {
@@ -87,6 +86,36 @@ class UnusedLoadersPlugin {
       .map(l => l.includes('-loader') ? l : l + '-loader')
 
     return Array.from(new Set(loaders))
+  }
+
+  display(unusedRules, unusedLoaders) {
+    process.stdout.write('\n')
+    process.stdout.write(chalk.blue('============== UNUSED LOADERS PLUGIN TIPS ==============\n'))
+    if (unusedRules.length) {
+      process.stdout.write(
+        chalk.red(`${unusedRules.length} unused rules found, you had better remove it from webpack config.\n\n`)
+      )
+      unusedRules.forEach(r => {
+        process.stdout.write(chalk.yellow(`● ${r.test}\n`))
+      })
+
+      process.stdout.write('\n')
+
+      if (unusedLoaders.length) {
+        process.stdout.write(
+          chalk.red(`${unusedLoaders.length} unused loaders found, check your packson.json devDependencies.\n\n`)
+        )
+        unusedLoaders.forEach(l => {
+          process.stdout.write(chalk.yellow(`● ${l}\n`))
+        })
+
+        process.stdout.write('\n')
+      }
+    } else {
+      process.stdout.write(
+        chalk.green(`no unused rules or loaders found, cheers! 🍻\n`)
+      )
+    }
   }
 
 }

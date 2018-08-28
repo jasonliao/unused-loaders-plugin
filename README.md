@@ -20,15 +20,10 @@ const UnusedLoadersPlugin = require('unused-loaders-plugin')
 module.exports = {
   // other config
   plugins: [
-    // other plugin
     new UnusedLoadersPlugin()
+    // other plugins
   ]
 }
 ```
-
-## Options
-
-- [ ] `excludeLoaders`
-
 
 
