@@ -53,6 +53,7 @@ class UnusedLoadersPlugin {
       const regExp = new RegExp(rule.test)
       return regExp.test(filename)
     } else {
+      // FIXME: log warning
       throw new Warning('original rules seem to be mutated, try to put UnusedLoadersPlugin before all plugins')
     }
   }
@@ -113,7 +114,7 @@ class UnusedLoadersPlugin {
       }
     } else {
       process.stdout.write(
-        chalk.green(`no unused rules or loaders found, cheers! 🍻\n`)
+        chalk.green(`no unused rules or loaders found, cheers! 🍻\n\n`)
       )
     }
   }
