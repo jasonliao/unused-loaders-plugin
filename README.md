@@ -2,11 +2,11 @@
 
 A webpack plugin to find unused rules/loaders
 
-<img src="./images/unused-rules-loader.png" alt="unused-rules-loader" style="max-width:70%;" />
+<img src="./images/unused-rules-loader.png" alt="unused-rules-loader" width="70%" />
 
-<img src="./images/unused-rules.png" alt="unused-rules" style="max-width:70%;" />
+<img src="./images/unused-rules.png" alt="unused-rules" width="70%" />
 
-<img src="./images/wow.png" alt="wow" style="max-width:70%;" />
+<img src="./images/wow.png" alt="wow" width="70%" />
 
 ## Install
 
